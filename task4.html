@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart To-Do App</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    min-height:100vh;
+    padding:20px;
+}
+
+.container{
+    max-width:900px;
+    margin:auto;
+    background:white;
+    padding:25px;
+    border-radius:20px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.25);
+}
+
+h1{
+    text-align:center;
+    color:#5a3ec8;
+    margin-bottom:20px;
+}
+
+.input-section{
+    display:grid;
+    grid-template-columns:2fr 1fr 1fr auto;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+input,select{
+    padding:12px;
+    border:2px solid #ddd;
+    border-radius:10px;
+    outline:none;
+}
+
+input:focus,
+select:focus{
+    border-color:#5a3ec8;
+}
+
+button{
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.add-btn{
+    background:#5a3ec8;
+    color:white;
+}
+
+.search-box{
+    width:100%;
+    margin-bottom:15px;
+}
+
+.stats{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:15px;
+    font-weight:bold;
+    color:#444;
+}
+
+ul{
+    list-style:none;
+}
+
+li{
+    background:white;
+    margin:12px 0;
+    padding:18px;
+    border-radius:15px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    border-left:6px solid #5a3ec8;
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+    transition:0.3s;
+}
+
+li:hover{
+    transform:translateY(-3px);
+    box-shadow:0 8px 18px rgba(0,0,0,0.12);
+}
+
+.task-info{
+    width:75%;
+}
+
+.task-title{
+    font-size:18px;
+    font-weight:bold;
+    color:#333;
+}
+
+.task-date{
+    display:inline-block;
+    margin-top:8px;
+    padding:8px 14px;
+    border-radius:20px;
+    font-size:14px;
+    font-weight:600;
+}
+
+.upcoming{
+    background:#e8f9ee;
+    color:#1e8e3e;
+}
+
+.overdue{
+    background:#ffe5e5;
+    color:#d93025;
+}
+
+.task-category{
+    margin-top:8px;
+    color:#5a3ec8;
+    font-size:14px;
+    font-weight:bold;
+}
+
+.completed .task-title{
+    text-decoration:line-through;
+    color:green;
+}
+
+.complete-btn{
+    background:#28a745;
+    color:white;
+}
+
+.edit-btn{
+    background:#ffc107;
+}
+
+.delete-btn{
+    background:#dc3545;
+    color:white;
+}
+
+.task-buttons button{
+    margin-left:5px;
+}
+
+@media(max-width:768px){
+
+.input-section{
+    grid-template-columns:1fr;
+}
+
+li{
+    flex-direction:column;
+    align-items:flex-start;
+}
+
+.task-buttons{
+    margin-top:10px;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🌟 Smart To-Do App</h1>
+
+<div class="input-section">
+
+<input
+type="text"
+id="taskInput"
+placeholder="Enter Task">
+
+<input
+type="datetime-local"
+id="taskDate">
+
+<select id="taskCategory">
+<option value="Study">📚 Study</option>
+<option value="Health">💪 Health</option>
+<option value="Personal">🌟 Personal</option>
+<option value="Work">💼 Work</option>
+</select>
+
+<button
+class="add-btn"
+onclick="addTask()">
+Add
+</button>
+
+</div>
+
+<input
+type="text"
+id="search"
+class="search-box"
+placeholder="🔍 Search Task"
+onkeyup="searchTask()">
+
+<div class="stats">
+<span id="totalTasks">Total: 0</span>
+<span id="completedTasks">Completed: 0</span>
+</div>
+
+<ul id="taskList"></ul>
+
+</div>
+
+<script>
+
+let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+
+function saveTasks(){
+localStorage.setItem("tasks",JSON.stringify(tasks));
+}
+
+function formatDateTime(dateTime){
+
+if(!dateTime){
+return "📅 No Date Set";
+}
+
+let date = new Date(dateTime);
+
+let formattedDate = date.toLocaleDateString("en-GB",{
+day:"2-digit",
+month:"short",
+year:"numeric"
+});
+
+let formattedTime = date.toLocaleTimeString([],{
+hour:"2-digit",
+minute:"2-digit"
+});
+
+return `📅 ${formattedDate} | 🕒 ${formattedTime}`;
+}
+
+function renderTasks(){
+
+let taskList=document.getElementById("taskList");
+taskList.innerHTML="";
+
+tasks.forEach((task,index)=>{
+
+let li=document.createElement("li");
+
+if(task.completed){
+li.classList.add("completed");
+}
+
+let dueDate = task.date ? new Date(task.date) : null;
+let now = new Date();
+
+let dateClass="";
+
+if(dueDate){
+if(dueDate < now && !task.completed){
+dateClass="overdue";
+}else{
+dateClass="upcoming";
+}
+}
+
+li.innerHTML=`
+
+<div class="task-info">
+
+<div class="task-title">
+${task.name}
+</div>
+
+<div class="task-date ${dateClass}">
+${formatDateTime(task.date)}
+</div>
+
+<div class="task-category">
+📂 ${task.category}
+</div>
+
+</div>
+
+<div class="task-buttons">
+
+<button
+class="complete-btn"
+onclick="toggleComplete(${index})">
+✔
+</button>
+
+<button
+class="edit-btn"
+onclick="editTask(${index})">
+✏
+</button>
+
+<button
+class="delete-btn"
+onclick="deleteTask(${index})">
+🗑
+</button>
+
+</div>
+
+`;
+
+taskList.appendChild(li);
+
+});
+
+updateStats();
+
+}
+
+function addTask(){
+
+let name=document.getElementById("taskInput").value.trim();
+let date=document.getElementById("taskDate").value;
+let category=document.getElementById("taskCategory").value;
+
+if(name===""){
+alert("Please enter a task");
+return;
+}
+
+tasks.push({
+name:name,
+date:date,
+category:category,
+completed:false
+});
+
+saveTasks();
+renderTasks();
+
+document.getElementById("taskInput").value="";
+document.getElementById("taskDate").value="";
+}
+
+function toggleComplete(index){
+
+tasks[index].completed=!tasks[index].completed;
+
+saveTasks();
+renderTasks();
+}
+
+function editTask(index){
+
+let newTask=prompt(
+"Edit Task",
+tasks[index].name
+);
+
+if(newTask){
+
+tasks[index].name=newTask;
+
+saveTasks();
+renderTasks();
+}
+}
+
+function deleteTask(index){
+
+if(confirm("Delete this task?")){
+
+tasks.splice(index,1);
+
+saveTasks();
+renderTasks();
+}
+}
+
+function updateStats(){
+
+let total=tasks.length;
+
+let completed=
+tasks.filter(task=>task.completed).length;
+
+document.getElementById("totalTasks").innerText=
+"Total: "+total;
+
+document.getElementById("completedTasks").innerText=
+"Completed: "+completed;
+}
+
+function searchTask(){
+
+let search=
+document.getElementById("search")
+.value.toLowerCase();
+
+let items=
+document.querySelectorAll("#taskList li");
+
+items.forEach(item=>{
+
+let text=item.innerText.toLowerCase();
+
+item.style.display=
+text.includes(search)
+? "flex"
+: "none";
+
+});
+}
+
+renderTasks();
+
+</script>
+
+</body>
+</html>
